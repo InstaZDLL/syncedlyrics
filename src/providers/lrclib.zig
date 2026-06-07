@@ -19,16 +19,22 @@ pub fn getLyrics(allocator: std.mem.Allocator, client: *std.http.Client, search_
 
     var best_index: usize = 0;
     var best_score: f64 = -1;
+    var best_cluster_count: usize = 0;
+    var best_has_synced = false;
     for (array.items, 0..) |item, i| {
         const obj = item.object;
         const artist = jsonString(obj.get("artistName")) orelse "";
         const track = jsonString(obj.get("trackName")) orelse "";
+        const synced = jsonString(obj.get("syncedLyrics")) != null;
         const label = try std.fmt.allocPrint(allocator, "{s} - {s}", .{ artist, track });
         defer allocator.free(label);
         const score = try utils.strScore(allocator, label, search_term);
-        if (score > best_score) {
+        const cluster_count = try countSimilarArtistMatches(allocator, array.items, artist, track, search_term);
+        if (isBetterCandidate(score, synced, cluster_count, best_score, best_has_synced, best_cluster_count)) {
             best_score = score;
             best_index = i;
+            best_cluster_count = cluster_count;
+            best_has_synced = synced;
         }
     }
 
@@ -42,6 +48,41 @@ pub fn getLyrics(allocator: std.mem.Allocator, client: *std.http.Client, search_
     };
     defer allocator.free(id);
     return getLyricsById(allocator, client, id);
+}
+
+fn isBetterCandidate(
+    score: f64,
+    has_synced: bool,
+    cluster_count: usize,
+    best_score: f64,
+    best_has_synced: bool,
+    best_cluster_count: usize,
+) bool {
+    if (score > best_score + 0.001) return true;
+    if (@abs(score - best_score) > 0.001) return false;
+    if (has_synced != best_has_synced) return has_synced;
+    return cluster_count > best_cluster_count;
+}
+
+fn countSimilarArtistMatches(
+    allocator: std.mem.Allocator,
+    items: []const std.json.Value,
+    artist: []const u8,
+    track: []const u8,
+    search_term: []const u8,
+) !usize {
+    var count: usize = 0;
+    for (items) |item| {
+        const obj = item.object;
+        const other_artist = jsonString(obj.get("artistName")) orelse "";
+        const other_track = jsonString(obj.get("trackName")) orelse "";
+        if (jsonString(obj.get("syncedLyrics")) == null) continue;
+        if (!std.ascii.eqlIgnoreCase(artist, other_artist)) continue;
+        if (try utils.strScore(allocator, other_track, track) < 90) continue;
+        if (try utils.strScore(allocator, other_track, search_term) < 90) continue;
+        count += 1;
+    }
+    return count;
 }
 
 fn getLyricsById(allocator: std.mem.Allocator, client: *std.http.Client, track_id: []const u8) !?utils.Lyrics {

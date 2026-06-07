@@ -160,6 +160,7 @@ pub fn strScore(allocator: std.mem.Allocator, a: []const u8, b: []const u8) !f64
             }
         }
     }
+    if (intersect == @min(toks_a.items.len, toks_b.items.len)) return 100;
     const precision = @as(f64, @floatFromInt(intersect)) / @as(f64, @floatFromInt(toks_a.items.len));
     const recall = @as(f64, @floatFromInt(intersect)) / @as(f64, @floatFromInt(toks_b.items.len));
     if (precision + recall == 0) return 0;
