@@ -18,7 +18,7 @@ pub fn main(init: std.process.Init) !void {
     const stderr = &stderr_file_writer.interface;
     defer stderr.flush() catch {};
 
-    const parsed = parseArgs(arena, io, args) catch |err| {
+    const parsed = parseArgs(arena, io, init.minimal.environ, args) catch |err| {
         try stderr.print("error: {s}\n\n", .{@errorName(err)});
         try usage(stderr);
         return;
@@ -47,7 +47,7 @@ const ParsedArgs = struct {
     output_path: ?[]const u8,
 };
 
-fn parseArgs(allocator: std.mem.Allocator, io: std.Io, args: []const []const u8) !ParsedArgs {
+fn parseArgs(allocator: std.mem.Allocator, io: std.Io, environ: std.process.Environ, args: []const []const u8) !ParsedArgs {
     if (args.len < 2) return error.MissingSearchTerm;
 
     var providers: std.ArrayList(syncedlyrics.Provider) = .empty;
@@ -108,6 +108,8 @@ fn parseArgs(allocator: std.mem.Allocator, io: std.Io, args: []const []const u8)
             .providers = try providers.toOwnedSlice(allocator),
             .lang = lang,
             .enhanced = enhanced,
+            .genius_cookie = environ.getAlloc(allocator, "SYNCEDLYRICS_GENIUS_COOKIE") catch null,
+            .netease_cookie = environ.getAlloc(allocator, "SYNCEDLYRICS_NETEASE_COOKIE") catch null,
             .verbose = verbose,
         },
         .output_path = output_path,

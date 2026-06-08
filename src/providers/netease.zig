@@ -2,20 +2,19 @@ const std = @import("std");
 const http = @import("../http.zig");
 const utils = @import("../utils.zig");
 
-const cookie =
-    "NMTID=00OAVK3xqDG726ITU6jopU6jF2yMk0AAAGCO8l1BA; " ++
-    "JSESSIONID-WYYY=8KQo11YK2GZP45RMlz8Kn80vHZ9%2FGvwzRKQXXy0iQoFKycWdBlQjbfT0MJrFa6hwRfmpfBYKeHliUPH287JC3hNW99WQjrh9b9RmKT%2Fg1Exc2VwHZcsqi7ITxQgfEiee50po28x5xTTZXKoP%2FRMctN2jpDeg57dZrXz%2FD%2FWghb%5C4DuZ%3A1659124633932; " ++
-    "_iuqxldmzr_=32; playerid=94262567";
-
-pub fn getLyrics(allocator: std.mem.Allocator, client: *std.http.Client, search_term: []const u8) !?utils.Lyrics {
+pub fn getLyrics(
+    allocator: std.mem.Allocator,
+    client: *std.http.Client,
+    search_term: []const u8,
+    cookie: ?[]const u8,
+) !?utils.Lyrics {
     const encoded = try utils.urlEncode(allocator, search_term);
     defer allocator.free(encoded);
     const url = try std.fmt.allocPrint(allocator, "https://music.163.com/api/search/pc?limit=10&type=1&offset=0&s={s}", .{encoded});
     defer allocator.free(url);
 
-    var response = try http.get(allocator, client, url, &.{
-        .{ .name = "cookie", .value = cookie },
-    });
+    const headers = if (cookie) |value| &[_]http.Header{.{ .name = "cookie", .value = value }} else &[_]http.Header{};
+    var response = try http.get(allocator, client, url, headers);
     defer response.deinit(allocator);
     if (response.status != .ok) return null;
 
@@ -54,15 +53,14 @@ pub fn getLyrics(allocator: std.mem.Allocator, client: *std.http.Client, search_
         else => return null,
     };
     defer allocator.free(id_text);
-    return getLyricsById(allocator, client, id_text);
+    return getLyricsById(allocator, client, id_text, cookie);
 }
 
-fn getLyricsById(allocator: std.mem.Allocator, client: *std.http.Client, track_id: []const u8) !?utils.Lyrics {
+fn getLyricsById(allocator: std.mem.Allocator, client: *std.http.Client, track_id: []const u8, cookie: ?[]const u8) !?utils.Lyrics {
     const url = try std.fmt.allocPrint(allocator, "https://music.163.com/api/song/lyric?id={s}&lv=1", .{track_id});
     defer allocator.free(url);
-    var response = try http.get(allocator, client, url, &.{
-        .{ .name = "cookie", .value = cookie },
-    });
+    const headers = if (cookie) |value| &[_]http.Header{.{ .name = "cookie", .value = value }} else &[_]http.Header{};
+    var response = try http.get(allocator, client, url, headers);
     defer response.deinit(allocator);
     if (response.status != .ok) return null;
 

@@ -2,14 +2,18 @@ const std = @import("std");
 const http = @import("../http.zig");
 const utils = @import("../utils.zig");
 
-pub fn getLyrics(allocator: std.mem.Allocator, client: *std.http.Client, search_term: []const u8) !?utils.Lyrics {
+pub fn getLyrics(
+    allocator: std.mem.Allocator,
+    client: *std.http.Client,
+    search_term: []const u8,
+    cookie: ?[]const u8,
+) !?utils.Lyrics {
     const encoded = try utils.urlEncode(allocator, search_term);
     defer allocator.free(encoded);
     const url = try std.fmt.allocPrint(allocator, "https://genius.com/api/search/multi?per_page=5&q={s}", .{encoded});
     defer allocator.free(url);
-    var response = try http.get(allocator, client, url, &.{
-        .{ .name = "cookie", .value = "obuid=e3ee67e0-7df9-4181-8324-d977c6dc9250" },
-    });
+    const headers = if (cookie) |value| &[_]http.Header{.{ .name = "cookie", .value = value }} else &[_]http.Header{};
+    var response = try http.get(allocator, client, url, headers);
     defer response.deinit(allocator);
     if (response.status != .ok) return null;
 

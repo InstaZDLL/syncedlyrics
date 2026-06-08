@@ -115,7 +115,7 @@ pub fn example(io: std.Io, allocator: std.mem.Allocator) !void {
 }
 ```
 
-Use `searchLyrics` when waveflow needs synced and plaintext lyrics separately:
+Use `searchLyrics` when Waveflow needs to access time-aligned synced lyrics and plain-text lyrics as separate values:
 
 ```zig
 var result = try syncedlyrics.searchLyrics(allocator, .{
@@ -134,6 +134,8 @@ Add this repository as a local Zig dependency from waveflow, then import the exp
 The library requires a `std.Io` handle in `SearchOptions` because Zig `0.16.0` makes I/O explicit. In a CLI or app entrypoint, this is usually `init.io`.
 
 Musixmatch token caching defaults to `.zig-syncedlyrics-cache/` relative to the working directory. For waveflow, pass `.cache_dir` in `SearchOptions` to use an application-controlled cache directory.
+
+Genius and NetEase can be used without embedded cookies. If a deployment needs provider cookies, pass `.genius_cookie` or `.netease_cookie` in `SearchOptions`. The CLI also reads optional `SYNCEDLYRICS_GENIUS_COOKIE` and `SYNCEDLYRICS_NETEASE_COOKIE` environment variables.
 
 ## Tests
 

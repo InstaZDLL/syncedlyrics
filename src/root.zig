@@ -15,6 +15,8 @@ pub const SearchOptions = struct {
     lang: ?[]const u8 = null,
     enhanced: bool = false,
     cache_dir: ?[]const u8 = null,
+    genius_cookie: ?[]const u8 = null,
+    netease_cookie: ?[]const u8 = null,
     verbose: bool = false,
 };
 
@@ -31,9 +33,9 @@ pub fn searchLyrics(allocator: std.mem.Allocator, options: SearchOptions) !?Lyri
     const selected = if (options.providers.len == 0) providers_mod.default_providers[0..] else options.providers;
     for (selected) |provider| {
         if (options.verbose) std.debug.print("Looking for lyrics on {s}\n", .{provider.name()});
+        if (options.lang != null and provider != .musixmatch) continue;
         var found = providers_mod.getLyrics(allocator, provider, options) catch |err| {
             if (options.verbose) std.debug.print("Provider {s} failed: {s}\n", .{ provider.name(), @errorName(err) });
-            if (options.lang != null and provider != .musixmatch) continue;
             continue;
         };
         if (found) |*lyrics| {

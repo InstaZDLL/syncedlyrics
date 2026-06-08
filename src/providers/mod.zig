@@ -43,8 +43,8 @@ pub fn getLyrics(allocator: std.mem.Allocator, provider: Provider, options: root
     return switch (provider) {
         .musixmatch => musixmatch.getLyrics(allocator, &client, options),
         .lrclib => lrclib.getLyrics(allocator, &client, options.search_term),
-        .netease => netease.getLyrics(allocator, &client, options.search_term),
+        .netease => netease.getLyrics(allocator, &client, options.search_term, options.netease_cookie),
         .megalobiz => megalobiz.getLyrics(allocator, &client, options.search_term),
-        .genius => genius.getLyrics(allocator, &client, options.search_term),
+        .genius => genius.getLyrics(allocator, &client, options.search_term, options.genius_cookie),
     };
 }
